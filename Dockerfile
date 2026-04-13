@@ -1,7 +1,8 @@
 # ── Стадія збірки ─────────────────────────────────────────────────────────────
-FROM rust:1.82-slim-bookworm AS builder
+FROM rust:1.88-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
         pkg-config \
         perl \
         make \
