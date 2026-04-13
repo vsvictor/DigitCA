@@ -43,6 +43,9 @@ docker compose up -d
 cargo build
 ```
 
+> Якщо порт `8080` уже зайнятий, змініть `API_PORT` у `.env` (наприклад, `API_PORT=8082`) і запускайте `docker compose up -d` повторно.
+> Якщо зайняті інші порти, використайте `MONGO_PORT`, `LDAP_PORT`, `PHPLDAPADMIN_PORT`.
+
 ## Локальне dev-оточення
 
 Файл `docker-compose.yml` запускає:
@@ -79,6 +82,15 @@ BASIC_AUTH_REQUIRE_HTTPS=false
 
 # CORS (опційно; через кому)
 CORS_ALLOWED_ORIGINS=
+
+# Host-порт для docker-compose API (container порт = 8080)
+API_PORT=8080
+# Host-порт MongoDB
+MONGO_PORT=27017
+# Host-порт OpenLDAP
+LDAP_PORT=389
+# Host-порт phpLDAPadmin
+PHPLDAPADMIN_PORT=8081
 ```
 
 > `ROOT_CA_KEY_PASSPHRASE` використовується для шифрування приватного ключа root CA перед збереженням у MongoDB і для його подальшого розшифрування під час випуску сертифікатів.
