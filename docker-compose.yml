@@ -45,6 +45,7 @@ services:
     environment:
       HTTP_BIND: "0.0.0.0"
       HTTP_PORT: "8080"
+      BASIC_AUTH_REQUIRE_HTTPS: "false"
       LDAP_PUBLISH_ENABLED: "true"
     ports:
       - "8080:8080"

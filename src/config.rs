@@ -12,6 +12,8 @@ pub struct AppConfig {
 	pub http_bind: String,
 	pub http_port: u16,
 	pub ldap_publish_enabled: bool,
+	pub basic_auth_require_https: bool,
+	pub cors_allowed_origins: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -41,6 +43,16 @@ impl AppConfig {
 			ldap_publish_enabled: env::var("LDAP_PUBLISH_ENABLED")
 				.map(|v| v == "true" || v == "1")
 				.unwrap_or(false),
+			basic_auth_require_https: parse_bool_env("BASIC_AUTH_REQUIRE_HTTPS", true),
+			cors_allowed_origins: env::var("CORS_ALLOWED_ORIGINS")
+				.ok()
+				.map(|v| {
+					v.split(',')
+						.map(|s| s.trim().to_string())
+						.filter(|s| !s.is_empty())
+						.collect()
+				})
+				.unwrap_or_default(),
 			ldap: LdapConfig {
 				url: must_get("LDAP_URL")?,
 				bind_dn: must_get("LDAP_BIND_DN")?,
@@ -51,6 +63,12 @@ impl AppConfig {
 			},
 		})
 	}
+}
+
+fn parse_bool_env(key: &str, default: bool) -> bool {
+	env::var(key)
+		.map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "True"))
+		.unwrap_or(default)
 }
 
 fn must_get(key: &str) -> AppResult<String> {

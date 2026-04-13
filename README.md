@@ -73,6 +73,12 @@ LDAP_BIND_PASSWORD=admin
 LDAP_BASE_DN=dc=example,dc=org
 LDAP_USER_ATTR=uid
 LDAP_REQUIRED_GROUP=cn=ca-admins,ou=groups,dc=example,dc=org
+
+# Security
+BASIC_AUTH_REQUIRE_HTTPS=false
+
+# CORS (опційно; через кому)
+CORS_ALLOWED_ORIGINS=
 ```
 
 > `ROOT_CA_KEY_PASSPHRASE` використовується для шифрування приватного ключа root CA перед збереженням у MongoDB і для його подальшого розшифрування під час випуску сертифікатів.
@@ -178,5 +184,7 @@ cargo test
 
 - Приватний ключ root CA більше не зберігається у відкритому PEM, якщо задано `ROOT_CA_KEY_PASSPHRASE`.
 - Leaf-сертифікати за замовчуванням можуть випускатися через `intermediate CA`, що зменшує ризик прямого використання root CA.
-- Для production все одно бажано винести ключі у HSM/KMS або щонайменше використовувати секрет-менеджер для passphrase.
-- Корисні наступні кроки для production: аудит-лог, ротація ключів, CRL/OCSP endpoint, політики профілів сертифікатів.
+- Для production рекомендується винести ключі у HSM/KMS або щонайменше використовувати секрет-менеджер для passphrase.
+- Basic auth має працювати лише через HTTPS. Для production рекомендується `BASIC_AUTH_REQUIRE_HTTPS=true` і reverse proxy, який передає `X-Forwarded-Proto=https`.
+- CORS не повинен бути permissive у production. Використовуйте явний whitelist через `CORS_ALLOWED_ORIGINS`.
+- Корисні наступні кроки для production: аудит-лог, ротація ключів, OCSP endpoint, політики профілів сертифікатів.

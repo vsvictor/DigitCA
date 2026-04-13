@@ -34,6 +34,10 @@ fn basic_auth(username: &str, password: &str) -> String {
 }
 
 fn test_app() -> axum::Router {
+    test_app_with_security(false)
+}
+
+fn test_app_with_security(enforce_https_basic_auth: bool) -> axum::Router {
     let storage: Box<dyn CaRepository + Send + Sync> = Box::new(InMemoryStorage::default());
     let service = CaService::new(storage, Some("test-passphrase".to_string()), None);
 
@@ -41,9 +45,10 @@ fn test_app() -> axum::Router {
         service: Arc::new(service),
         ldap: Arc::new(AllowAuthorizer),
         publisher: LdapPublisher::disabled(),
+        enforce_https_basic_auth,
     };
 
-    router(state)
+    router(state, &[])
 }
 
 async fn json_response(resp: axum::response::Response) -> Value {
@@ -231,6 +236,38 @@ async fn unauthorized_request_is_rejected() {
 
     let resp = app.oneshot(req).await.expect("response must succeed");
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn basic_auth_requires_https_when_enforced() {
+    let app = test_app_with_security(true);
+    let auth = basic_auth("admin", "secret");
+
+    let req_without_https = Request::builder()
+        .method("GET")
+        .uri("/api/v1/certificates")
+        .header(AUTHORIZATION, auth.clone())
+        .body(Body::empty())
+        .expect("request must be built");
+    let resp_without_https = app
+        .clone()
+        .oneshot(req_without_https)
+        .await
+        .expect("response must succeed");
+    assert_eq!(resp_without_https.status(), StatusCode::BAD_REQUEST);
+
+    let req_with_forwarded_https = Request::builder()
+        .method("GET")
+        .uri("/api/v1/certificates")
+        .header(AUTHORIZATION, auth)
+        .header("x-forwarded-proto", "https")
+        .body(Body::empty())
+        .expect("request must be built");
+    let resp_with_forwarded_https = app
+        .oneshot(req_with_forwarded_https)
+        .await
+        .expect("response must succeed");
+    assert_eq!(resp_with_forwarded_https.status(), StatusCode::OK);
 }
 
 #[tokio::test]

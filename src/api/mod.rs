@@ -6,10 +6,14 @@ pub mod openapi;
 use std::sync::Arc;
 
 use axum::{
+    http::{HeaderValue, Method, header},
     routing::{get, post},
     Router,
 };
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    cors::{AllowOrigin, CorsLayer},
+    trace::TraceLayer,
+};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -26,11 +30,12 @@ pub struct AppState {
     pub service: Arc<CaService<Box<dyn CaRepository + Send + Sync>>>,
     pub ldap: Arc<dyn Authorizer + Send + Sync>,
     pub publisher: LdapPublisher,
+    pub enforce_https_basic_auth: bool,
 }
 
 /// Будує axum Router зі всіма маршрутами REST API.
-pub fn router(state: AppState) -> Router {
-    Router::new()
+pub fn router(state: AppState, cors_allowed_origins: &[String]) -> Router {
+    let mut app = Router::new()
         .merge(SwaggerUi::new("/docs").url("/api-doc/openapi.json", openapi::ApiDoc::openapi()))
         // Стан сервера
         .route("/health", get(handlers::health))
@@ -74,10 +79,40 @@ pub fn router(state: AppState) -> Router {
         .route("/api/v1/audit", get(handlers::audit_log))
         // LDAP-директорія
         .route("/api/v1/ldap/certificates", get(handlers::ldap_search_by_cn))
-        // Middleware
-        .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
-        .with_state(state)
+        .with_state(state);
+
+    if let Some(cors) = build_cors_layer(cors_allowed_origins) {
+        app = app.layer(cors);
+    }
+
+    app
+}
+
+fn build_cors_layer(origins: &[String]) -> Option<CorsLayer> {
+    if origins.is_empty() {
+        return None;
+    }
+
+    if origins.iter().any(|o| o == "*") {
+        return Some(CorsLayer::permissive());
+    }
+
+    let parsed: Vec<HeaderValue> = origins
+        .iter()
+        .filter_map(|origin| HeaderValue::from_str(origin).ok())
+        .collect();
+
+    if parsed.is_empty() {
+        return None;
+    }
+
+    Some(
+        CorsLayer::new()
+            .allow_origin(AllowOrigin::list(parsed))
+            .allow_methods([Method::GET, Method::POST])
+            .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]),
+    )
 }
 
 

@@ -23,6 +23,14 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
+        if state.enforce_https_basic_auth && !request_is_https(parts) {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Basic автентифікація дозволена лише через HTTPS",
+            )
+                .into_response());
+        }
+
         let auth_header = parts
             .headers
             .get(AUTHORIZATION)
@@ -66,5 +74,27 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
             username: username.to_string(),
         })
     }
+}
+
+fn request_is_https(parts: &Parts) -> bool {
+    if parts.uri.scheme_str().is_some_and(|s| s.eq_ignore_ascii_case("https")) {
+        return true;
+    }
+
+    if parts
+        .headers
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.eq_ignore_ascii_case("https"))
+    {
+        return true;
+    }
+
+    parts
+        .headers
+        .get("forwarded")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.to_ascii_lowercase().contains("proto=https"))
+        .unwrap_or(false)
 }
 

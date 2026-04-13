@@ -164,13 +164,14 @@ pub async fn run() -> AppResult<()> {
             service: Arc::new(service),
             ldap,
             publisher,
+            enforce_https_basic_auth: config.basic_auth_require_https,
         };
         let addr = format!("{bind}:{port}");
         let listener = TcpListener::bind(&addr)
             .await
             .map_err(|e| AppError::Config(format!("не вдалося прослуховувати {addr}: {e}")))?;
         tracing::info!("REST API доступний на http://{addr}");
-        axum::serve(listener, router(state))
+        axum::serve(listener, router(state, &config.cors_allowed_origins))
             .await
             .map_err(|e| AppError::Config(e.to_string()))?;
         return Ok(());
