@@ -10,6 +10,7 @@
 - Пагінація для списку сертифікатів (`page`, `per_page`).
 - Нові API інтеграційні тести (`tests/api.rs`).
 - Типізовані причини відкликання (`RevocationReason`) з валідацією.
+- API-тест на enforcement `BASIC_AUTH_REQUIRE_HTTPS`.
 
 ### Changed
 - `POST /api/v1/certificates` повертає приватний ключ лише під час issue.
@@ -19,4 +20,5 @@
 ### Security
 - Закрито витік `key_pem` у read/list endpoint-ах.
 - Додано валідацію `reason` при відкликанні сертифіката.
+- Додано enforcement Basic auth лише через HTTPS (з підтримкою `X-Forwarded-Proto=https`).
 
