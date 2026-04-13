@@ -1,0 +1,8 @@
+target/
+.env
+*.pem
+.git/
+.gitignore
+README.md
+infra/
+
