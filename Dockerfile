@@ -11,9 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
 COPY src ./src
 COPY tests ./tests
-RUN cargo build --release --locked
+RUN cargo build --release --locked -p digitca
 
 # ── Стадія запуску ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS runtime

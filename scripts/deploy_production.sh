@@ -46,7 +46,7 @@ fi
 
 log "Building release binary..."
 cd "${REPO_DIR}"
-cargo build --release
+cargo build --release -p digitca
 
 log "Ensuring system user/group exist..."
 if ! getent group "${APP_GROUP}" >/dev/null; then

@@ -7,6 +7,8 @@ DigitCA — це CLI-проєкт на Rust, який реалізує Certifica
 - Підтримка `intermediate CA` для безпечнішого випуску leaf-сертифікатів
 - **Аудит-лог** усіх операцій у MongoDB
 
+> Репозиторій працює як Cargo workspace: кореневий пакет `digitca` містить основний CLI/API, а `crates/digitca-ocsp` — доданий порожній приклад пакета в межах workspace.
+
 ## Можливості
 
 - Ініціалізація Root CA
@@ -44,7 +46,7 @@ DigitCA — це CLI-проєкт на Rust, який реалізує Certifica
 cd /Users/victor/DigitCA
 cp .env.example .env
 docker compose up -d
-cargo build
+cargo build -p digitca
 ```
 
 > Якщо порт `8080` уже зайнятий, змініть `API_PORT` у `.env` (наприклад, `API_PORT=8082`) і запускайте `docker compose up -d` повторно.
@@ -129,17 +131,17 @@ PHPLDAPADMIN_PORT=8081
 ## Команди
 
 ```bash
-cargo run -- init-root --common-name "DigitCA Root" --validity-days 3650 --username admin --password secret
-cargo run -- init-intermediate --common-name "DigitCA Intermediate" --validity-days 1825 --username admin --password secret
-cargo run -- issue --common-name "service.internal" --profile server-tls --issuer auto --dns service.internal --dns api.internal --validity-days 365 --username admin --password secret
-cargo run -- issue --common-name "workstation-007" --profile client-auth --validity-days 365 --username admin --password secret
-cargo run -- list --include-revoked --username admin --password secret
-cargo run -- get --serial <SERIAL> --username admin --password secret
-cargo run -- verify --serial <SERIAL> --username admin --password secret
-cargo run -- revoke --serial <SERIAL> --reason "keyCompromise" --username admin --password secret
-cargo run -- export-root --output ./root-ca.pem --username admin --password secret
-cargo run -- export-intermediate --output ./intermediate-ca.pem --username admin --password secret
-cargo run -- audit-log --limit 20 --username admin --password secret
+cargo run -p digitca -- init-root --common-name "DigitCA Root" --validity-days 3650 --username admin --password secret
+cargo run -p digitca -- init-intermediate --common-name "DigitCA Intermediate" --validity-days 1825 --username admin --password secret
+cargo run -p digitca -- issue --common-name "service.internal" --profile server-tls --issuer auto --dns service.internal --dns api.internal --validity-days 365 --username admin --password secret
+cargo run -p digitca -- issue --common-name "workstation-007" --profile client-auth --validity-days 365 --username admin --password secret
+cargo run -p digitca -- list --include-revoked --username admin --password secret
+cargo run -p digitca -- get --serial <SERIAL> --username admin --password secret
+cargo run -p digitca -- verify --serial <SERIAL> --username admin --password secret
+cargo run -p digitca -- revoke --serial <SERIAL> --reason "keyCompromise" --username admin --password secret
+cargo run -p digitca -- export-root --output ./root-ca.pem --username admin --password secret
+cargo run -p digitca -- export-intermediate --output ./intermediate-ca.pem --username admin --password secret
+cargo run -p digitca -- audit-log --limit 20 --username admin --password secret
 ```
 
 ## REST API приклади
@@ -174,8 +176,10 @@ curl -s "http://localhost:8080/crl/intermediate.crl" \
 
 ## Структура
 
+- `Cargo.toml` — кореневий маніфест пакета `digitca` та workspace-опис
 - `src/lib.rs` — бібліотечний runner, CLI-команди й тестований command-flow
 - `src/main.rs` — тонкий вхідний файл
+- `crates/digitca-ocsp` — додатковий порожній пакет у workspace
 - `src/ca.rs` — криптографічна логіка CA
 - `src/ldap_auth.rs` — LDAP authN/authZ та інтерфейс `Authorizer`
 - `src/storage.rs` — MongoDB-репозиторій і `InMemoryStorage` для тестів
@@ -193,7 +197,8 @@ curl -s "http://localhost:8080/crl/intermediate.crl" \
 - інтеграційний тест повного CLI-потоку в пам'яті
 
 ```bash
-cargo test
+cargo test -p digitca
+cargo test --workspace
 ```
 
 ## Зауваження щодо безпеки

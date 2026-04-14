@@ -3,6 +3,10 @@ name = "digitca"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+resolver = "2"
+members = ["crates/digitca-ocsp"]
+
 [dependencies]
 async-trait = "0.1"
 axum = { version = "0.7", features = ["macros"] }
