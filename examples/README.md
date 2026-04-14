@@ -39,3 +39,10 @@ CURL_INSECURE=true ./examples/03_openapi_json.sh
 - `40_audit_log.sh` -> `GET /api/v1/audit`
 - `50_ldap_search_by_cn.sh` -> `GET /api/v1/ldap/certificates?cn=...`
 
+## Multi-language examples
+
+- `multilang/rust` — автономний приклад на Rust
+- `multilang/kotlin` — автономний приклад на Kotlin
+- `multilang/flutter` — автономний приклад на Flutter
+- `multilang/nodejs` — автономний приклад на Node.js
+
