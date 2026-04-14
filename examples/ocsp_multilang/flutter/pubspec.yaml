@@ -1,0 +1,11 @@
+name: digitca_ocsp_flutter_example
+description: Flutter/Dart OCSP client example for digitca-ocsp
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  http: ^1.2.1
+

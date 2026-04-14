@@ -46,3 +46,7 @@ CURL_INSECURE=true ./examples/03_openapi_json.sh
 - `multilang/flutter` — автономний приклад на Flutter
 - `multilang/nodejs` — автономний приклад на Node.js
 
+## OCSP multi-language examples
+
+- `ocsp_multilang/` — окремий набір прикладів для `digitca-ocsp` (`bash`, `rust`, `kotlin`, `flutter`, `nodejs`)
+

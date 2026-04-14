@@ -1,0 +1,13 @@
+[package]
+name = "digitca-ocsp-rust-example"
+version = "0.1.0"
+edition = "2021"
+
+# Stand-alone workspace so it is not absorbed by the root DigitCA workspace.
+[workspace]
+
+[dependencies]
+clap    = { version = "4.5", features = ["derive", "env"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tokio   = { version = "1",   features = ["macros", "rt-multi-thread", "fs"] }
+
