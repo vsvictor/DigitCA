@@ -595,6 +595,22 @@ dependencies = [
 [[package]]
 name = "digitca-ocsp"
 version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "digitca",
+ "dotenvy",
+ "foreign-types",
+ "http-body-util",
+ "openssl",
+ "openssl-sys",
+ "serde",
+ "tokio",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "displaydoc"

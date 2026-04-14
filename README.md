@@ -7,7 +7,7 @@ DigitCA — це CLI-проєкт на Rust, який реалізує Certifica
 - Підтримка `intermediate CA` для безпечнішого випуску leaf-сертифікатів
 - **Аудит-лог** усіх операцій у MongoDB
 
-> Репозиторій працює як Cargo workspace: кореневий пакет `digitca` містить основний CLI/API, а `crates/digitca-ocsp` — доданий порожній приклад пакета в межах workspace.
+> Репозиторій працює як Cargo workspace: кореневий пакет `digitca` містить основний CLI/API, а `crates/digitca-ocsp` — повноцінний OCSP responder сервіс.
 
 ## Можливості
 
@@ -49,8 +49,8 @@ docker compose up -d
 cargo build -p digitca
 ```
 
-> Якщо порт `8080` уже зайнятий, змініть `API_PORT` у `.env` (наприклад, `API_PORT=8082`) і запускайте `docker compose up -d` повторно.
-> Якщо зайняті інші порти, використайте `MONGO_PORT`, `LDAP_PORT`, `PHPLDAPADMIN_PORT`.
+> Якщо порт `8080` уже зайнятий, змініть `API_PORT` у `.env` (наприклад, `API_PORT=18080`) і запускайте `docker compose up -d` повторно.
+> Якщо зайняті інші порти, використайте `OCSP_PORT`, `MONGO_PORT`, `LDAP_PORT`, `PHPLDAPADMIN_PORT`.
 
 ## Локальне dev-оточення
 
@@ -58,6 +58,8 @@ cargo build -p digitca
 - `mongo` на `localhost:27017`
 - `openldap` на `localhost:389`
 - `phpldapadmin` на `http://localhost:8081`
+- `api` на `http://localhost:8080`
+- `ocsp` на `http://localhost:8082`
 
 Початкові dev-облікові дані:
 - LDAP bind admin: `cn=admin,dc=example,dc=org` / `admin`
@@ -91,6 +93,9 @@ CORS_ALLOWED_ORIGINS=
 
 # Host-порт для docker-compose API (container порт = 8080)
 API_PORT=8080
+# Host-порт для docker-compose OCSP responder (container порт = 8082)
+OCSP_PORT=8082
+OCSP_NEXT_UPDATE_SECONDS=3600
 # Host-порт MongoDB
 MONGO_PORT=27017
 # Host-порт OpenLDAP
@@ -174,12 +179,18 @@ curl -s "http://localhost:8080/crl/intermediate.crl" \
   -H "Authorization: Basic $(printf 'admin:secret' | base64)"
 ```
 
+OCSP health:
+
+```bash
+curl -s "http://localhost:8082/health"
+```
+
 ## Структура
 
 - `Cargo.toml` — кореневий маніфест пакета `digitca` та workspace-опис
 - `src/lib.rs` — бібліотечний runner, CLI-команди й тестований command-flow
 - `src/main.rs` — тонкий вхідний файл
-- `crates/digitca-ocsp` — додатковий порожній пакет у workspace
+- `crates/digitca-ocsp` — окремий OCSP responder сервіс для перевірки статусу сертифікатів
 - `src/ca.rs` — криптографічна логіка CA
 - `src/ldap_auth.rs` — LDAP authN/authZ та інтерфейс `Authorizer`
 - `src/storage.rs` — MongoDB-репозиторій і `InMemoryStorage` для тестів

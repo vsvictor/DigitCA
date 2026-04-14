@@ -14,13 +14,16 @@ APP_USER="${APP_USER:-digitca}"
 APP_GROUP="${APP_GROUP:-digitca}"
 APP_DIR="${APP_DIR:-/opt/digitca}"
 SERVICE_NAME="${SERVICE_NAME:-digitca}"
+OCSP_SERVICE_NAME="${OCSP_SERVICE_NAME:-digitca-ocsp}"
 WITH_CERTBOT="${WITH_CERTBOT:-false}"
+OCSP_LOCAL_PORT="${OCSP_LOCAL_PORT:-8082}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${REPO_DIR}/.env}"
 
 SYSTEMD_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+OCSP_SYSTEMD_FILE="/etc/systemd/system/${OCSP_SERVICE_NAME}.service"
 NGINX_SITE_FILE="/etc/nginx/sites-available/${DOMAIN}"
 NGINX_SITE_LINK="/etc/nginx/sites-enabled/${DOMAIN}"
 
@@ -46,7 +49,7 @@ fi
 
 log "Building release binary..."
 cd "${REPO_DIR}"
-cargo build --release -p digitca
+cargo build --release -p digitca -p digitca-ocsp
 
 log "Ensuring system user/group exist..."
 if ! getent group "${APP_GROUP}" >/dev/null; then
@@ -59,9 +62,11 @@ fi
 log "Installing application files to ${APP_DIR}..."
 sudo mkdir -p "${APP_DIR}"
 sudo cp "${REPO_DIR}/target/release/digitca" "${APP_DIR}/digitca"
+sudo cp "${REPO_DIR}/target/release/digitca-ocsp" "${APP_DIR}/digitca-ocsp"
 sudo cp "${ENV_FILE}" "${APP_DIR}/.env"
 sudo chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
 sudo chmod 750 "${APP_DIR}/digitca"
+sudo chmod 750 "${APP_DIR}/digitca-ocsp"
 sudo chmod 600 "${APP_DIR}/.env"
 
 log "Writing systemd service: ${SYSTEMD_FILE}"
@@ -77,6 +82,31 @@ Group=${APP_GROUP}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${APP_DIR}/.env
 ExecStart=${APP_DIR}/digitca serve
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+log "Writing systemd service: ${OCSP_SYSTEMD_FILE}"
+sudo tee "${OCSP_SYSTEMD_FILE}" >/dev/null <<EOF
+[Unit]
+Description=DigitCA OCSP Responder
+After=network.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+Group=${APP_GROUP}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${APP_DIR}/.env
+ExecStart=${APP_DIR}/digitca-ocsp
 Restart=always
 RestartSec=5
 
@@ -118,6 +148,16 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP \$remote_addr;
     }
+
+    location /ocsp {
+        proxy_pass http://127.0.0.1:${OCSP_LOCAL_PORT};
+        proxy_http_version 1.1;
+
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP \$remote_addr;
+    }
 }
 EOF
 
@@ -137,11 +177,13 @@ fi
 log "Reloading services..."
 sudo systemctl daemon-reload
 sudo systemctl enable --now "${SERVICE_NAME}"
+sudo systemctl enable --now "${OCSP_SERVICE_NAME}"
 sudo nginx -t
 sudo systemctl reload nginx
 
 log "Done. Service status:"
 sudo systemctl --no-pager --full status "${SERVICE_NAME}" | sed -n '1,20p'
+sudo systemctl --no-pager --full status "${OCSP_SERVICE_NAME}" | sed -n '1,20p'
 
 log "Health check (may fail if DNS/TLS is not fully ready):"
 set +e
@@ -153,5 +195,17 @@ if [[ $health_rc -ne 0 ]]; then
 else
   echo
   log "Health check passed."
+fi
+
+log "OCSP health check (local):"
+set +e
+curl -fsS "http://127.0.0.1:${OCSP_LOCAL_PORT}/health"
+ocsp_health_rc=$?
+set -e
+if [[ $ocsp_health_rc -ne 0 ]]; then
+  log "OCSP health check failed. Verify OCSP_PORT/OCSP_BIND in ${APP_DIR}/.env and service logs."
+else
+  echo
+  log "OCSP health check passed."
 fi
 

@@ -52,6 +52,20 @@ services:
       - mongo
       - openldap
 
+  ocsp:
+    build: .
+    container_name: digitca-ocsp
+    restart: unless-stopped
+    entrypoint: ["digitca-ocsp"]
+    env_file: .env
+    environment:
+      OCSP_BIND: "0.0.0.0"
+      OCSP_PORT: "8082"
+    ports:
+      - "${OCSP_PORT:-8082}:8082"
+    depends_on:
+      - mongo
+
 volumes:
   mongo-data:
 
